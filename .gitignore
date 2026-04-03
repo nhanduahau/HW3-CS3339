@@ -1,8 +1,10 @@
-#ignore everything
+# Ignore everything by default
 *
 
-#unignore what we want to track
+# Unignore tracked files
 !*.cpp
 !*.h
 !.gitignore
 !README.md
+!Makefile
+!memory_reference_file
