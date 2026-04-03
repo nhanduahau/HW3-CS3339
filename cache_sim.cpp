@@ -238,25 +238,30 @@ int main(int argc, char* argv[]) {
         fout << "\n";
     }
 
+    fout.close();
+
+    std::cout << "Per-reference lines written to \"" << out_file << "\".\n";
+
     int l1_hit_count  = 0;
     int l1_miss_count = 0;
     for (bool h : l1_hits) h ? ++l1_hit_count : ++l1_miss_count;
 
-    fout << "\n--- Summary ---\n";
-    fout << "Total references : " << refs.size() << "\n";
-    fout << "L1 Hits          : " << l1_hit_count
-         << " (" << (100.0 * l1_hit_count / refs.size()) << "%)\n";
-    fout << "L1 Misses        : " << l1_miss_count
-         << " (" << (100.0 * l1_miss_count / refs.size()) << "%)\n";
+    // Summary on stdout only; cache_sim_output matches HW3 (one line per reference).
+    std::cout << "\n--- Summary ---\n";
+    std::cout << "Total references : " << refs.size() << "\n";
+    std::cout << "L1 Hits          : " << l1_hit_count
+              << " (" << (100.0 * l1_hit_count / refs.size()) << "%)\n";
+    std::cout << "L1 Misses        : " << l1_miss_count
+              << " (" << (100.0 * l1_miss_count / refs.size()) << "%)\n";
 
     if (use_l2) {
         int l2_hit_count = 0;
         for (bool h : l2_hits) if (h) ++l2_hit_count;
         int l2_miss_count = l1_miss_count - l2_hit_count;
 
-        fout << "L2 Accesses      : " << l1_miss_count << "\n";
-        fout << "L2 Hits          : " << l2_hit_count << "\n";
-        fout << "L2 Misses        : " << l2_miss_count << "\n";
+        std::cout << "L2 Accesses      : " << l1_miss_count << "\n";
+        std::cout << "L2 Hits          : " << l2_hit_count << "\n";
+        std::cout << "L2 Misses        : " << l2_miss_count << "\n";
     }
 
     if (classify) {
@@ -271,15 +276,12 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-        fout << "Miss Breakdown:\n";
-        fout << "  Compulsory : " << n_comp << "\n";
-        fout << "  Capacity   : " << n_cap << "\n";
-        fout << "  Conflict   : " << n_conf << "\n";
+        std::cout << "Miss Breakdown:\n";
+        std::cout << "  Compulsory : " << n_comp << "\n";
+        std::cout << "  Capacity   : " << n_cap << "\n";
+        std::cout << "  Conflict   : " << n_conf << "\n";
     }
 
-    fout.close();
-
-    std::cout << "Output written to \"" << out_file << "\".\n";
     delete l2;
     return 0;
 }
