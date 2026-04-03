@@ -30,6 +30,8 @@ To remove the binary and output file, delete `cache_sim` / `cache_sim.exe` and `
 ./cache_sim <num_entries> <associativity> <memory_reference_file>
 ```
 
+On Windows PowerShell, use `.\cache_sim.exe` instead of `./cache_sim`.
+
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
 | `num_entries`           | Total number of cache entries (must be power of two) |
@@ -44,51 +46,39 @@ To remove the binary and output file, delete `cache_sim` / `cache_sim.exe` and `
 | `--l2 <entries> <assoc>` | Enable L2 cache with given size and associativity  |
 | `--classify`             | Classify each miss as Compulsory/Capacity/Conflict |
 
-### Examples
-
-**Basic (matches sample from homework spec):**
+### Example Commands
 
 ```bash
-./cache_sim 4 2 memory_reference_file
-```
-
-**With 4-word blocks:**
-
-```bash
-./cache_sim 8 2 memory_reference_file --block-size 4
-```
-
-**With L2 cache:**
-
-```bash
-./cache_sim 4 2 memory_reference_file --l2 16 4
-```
-
-**Full extra credit (all features):**
-
-```bash
-./cache_sim 4 2 memory_reference_file --block-size 4 --l2 16 4 --classify
+./cache_sim 4 2 samples/basic.txt
+./cache_sim 4 2 samples/block_b4.txt --block-size 4
+./cache_sim 4 2 samples/basic.txt --classify
+./cache_sim 2 2 samples/l2_demo.txt --l2 8 4
+./cache_sim 2 1 samples/capacity.txt --classify
+./cache_sim 4 2 samples/basic.txt --block-size 2 --l2 8 4 --classify
 ```
 
 ## Output
 
-The simulator writes results to a file named `cache_sim_output` in the current directory.
+- **`cache_sim_output`** (in the current working directory): **only** per-reference lines, one per line, in homework format. This matches the assignment (“each line … a single memory reference”).
+- **Terminal (stdout)**: configuration banner, a short confirmation that the file was written, and a **--- Summary ---** block (hits/misses, optional L2 stats and 3C breakdown).
 
-### Basic output format
+### Per-reference line formats
+
+**L1 only**
 
 ```
 <addr> : HIT
 <addr> : MISS
 ```
 
-### With L2 cache
+**With L2** (only on L1 miss)
 
 ```
 <addr> : MISS | L2: HIT
 <addr> : MISS | L2: MISS
 ```
 
-### With miss classification
+**With `--classify`** (only on L1 miss)
 
 ```
 <addr> : MISS (COMPULSORY)
@@ -96,7 +86,108 @@ The simulator writes results to a file named `cache_sim_output` in the current d
 <addr> : MISS (CONFLICT)
 ```
 
-A summary section is appended after all per-reference lines:
+Flags can be combined (e.g. `MISS | L2: HIT (CONFLICT)`).
+
+## Sample I/O (all cases)
+
+Reference traces live under [`samples/`](samples/). The outputs below were produced by this implementation; percentages in the summary may show more or fewer decimal places depending on the platform.
+
+---
+
+### 1. Basic (matches homework handout)
+
+**Input** — `samples/basic.txt` (same trace as `memory_reference_file` in the repo root):
+
+```
+1 3 5 1 3 1
+```
+
+**Command**
+
+```bash
+./cache_sim 4 2 samples/basic.txt
+```
+
+**`cache_sim_output`**
+
+```
+1 : MISS
+3 : MISS
+5 : MISS
+1 : MISS
+3 : MISS
+1 : HIT
+```
+
+**Stdout (summary excerpt)**
+
+```
+--- Summary ---
+Total references : 6
+L1 Hits          : 1 (16.6667%)
+L1 Misses        : 5 (83.3333%)
+```
+
+---
+
+### 2. Multi-word blocks (`--block-size`)
+
+**Input** — `samples/block_b4.txt`:
+
+```
+0 1 4 0
+```
+
+Words `0` and `1` fall in the same block when `block_size = 4`; `4` is the next block.
+
+**Command**
+
+```bash
+./cache_sim 4 2 samples/block_b4.txt --block-size 4
+```
+
+**`cache_sim_output`**
+
+```
+0 : MISS
+1 : HIT
+4 : MISS
+0 : HIT
+```
+
+**Stdout (summary excerpt)**
+
+```
+--- Summary ---
+Total references : 4
+L1 Hits          : 2 (50%)
+L1 Misses        : 2 (50%)
+```
+
+---
+
+### 3. Miss classification — compulsory + conflict (`--classify`)
+
+**Input** — `samples/basic.txt`
+
+**Command**
+
+```bash
+./cache_sim 4 2 samples/basic.txt --classify
+```
+
+**`cache_sim_output`**
+
+```
+1 : MISS (COMPULSORY)
+3 : MISS (COMPULSORY)
+5 : MISS (COMPULSORY)
+1 : MISS (CONFLICT)
+3 : MISS (CONFLICT)
+1 : HIT
+```
+
+**Stdout (summary excerpt)**
 
 ```
 --- Summary ---
@@ -109,30 +200,125 @@ Miss Breakdown:
   Conflict   : 2
 ```
 
-## Sample I/O
+---
 
-**Input file** (`memory_reference_file`):
+### 4. Miss classification — compulsory + capacity (`--classify`)
+
+**Input** — `samples/capacity.txt`:
 
 ```
-1 3 5 1 3 1
+0 2 4 0
 ```
 
-**Invocation:**
+**Command** — direct-mapped L1 with two sets (`2` entries, `1`-way): repeated distinct blocks map to the same set, so the final `0` misses even though a fully associative cache of the same total size would also miss (capacity).
 
 ```bash
-./cache_sim 4 2 memory_reference_file
+./cache_sim 2 1 samples/capacity.txt --classify
 ```
 
-**Output file** (`cache_sim_output`):
+**`cache_sim_output`**
 
 ```
-1 : MISS
-3 : MISS
-5 : MISS
-1 : MISS
-3 : MISS
+0 : MISS (COMPULSORY)
+2 : MISS (COMPULSORY)
+4 : MISS (COMPULSORY)
+0 : MISS (CAPACITY)
+```
+
+**Stdout (summary excerpt)**
+
+```
+--- Summary ---
+Total references : 4
+L1 Hits          : 0 (0%)
+L1 Misses        : 4 (100%)
+Miss Breakdown:
+  Compulsory : 3
+  Capacity   : 1
+  Conflict   : 0
+```
+
+---
+
+### 5. L1 + L2 (`--l2`)
+
+**Input** — `samples/l2_demo.txt`:
+
+```
+0 1 2 0
+```
+
+L1 is small (`2` entries, `2`-way); L2 is larger. After filling both, block `0` can remain in L2 when evicted from L1, so the last access is an **L1 miss** and **L2 hit**.
+
+**Command**
+
+```bash
+./cache_sim 2 2 samples/l2_demo.txt --l2 8 4
+```
+
+**`cache_sim_output`**
+
+```
+0 : MISS | L2: MISS
+1 : MISS | L2: MISS
+2 : MISS | L2: MISS
+0 : MISS | L2: HIT
+```
+
+**Stdout (summary excerpt)**
+
+```
+--- Summary ---
+Total references : 4
+L1 Hits          : 0 (0%)
+L1 Misses        : 4 (100%)
+L2 Accesses      : 4
+L2 Hits          : 1
+L2 Misses        : 3
+```
+
+---
+
+### 6. All optional features together
+
+**Input** — `samples/basic.txt`
+
+**Command**
+
+```bash
+./cache_sim 4 2 samples/basic.txt --block-size 2 --l2 8 4 --classify
+```
+
+With `block_size = 2`, words `1`, `3`, and `5` map to three distinct blocks; the later repeats hit in L1, so L2 is not queried on those hits.
+
+**`cache_sim_output`**
+
+```
+1 : MISS | L2: MISS (COMPULSORY)
+3 : MISS | L2: MISS (COMPULSORY)
+5 : MISS | L2: MISS (COMPULSORY)
+1 : HIT
+3 : HIT
 1 : HIT
 ```
+
+**Stdout (summary excerpt)**
+
+```
+--- Summary ---
+Total references : 6
+L1 Hits          : 3 (50%)
+L1 Misses        : 3 (50%)
+L2 Accesses      : 3
+L2 Hits          : 0
+L2 Misses        : 3
+Miss Breakdown:
+  Compulsory : 3
+  Capacity   : 0
+  Conflict   : 0
+```
+
+---
 
 ## Design Notes
 
