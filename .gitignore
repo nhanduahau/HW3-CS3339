@@ -6,5 +6,4 @@
 !*.h
 !.gitignore
 !README.md
-!Makefile
 !memory_reference_file
