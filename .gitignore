@@ -1,9 +1,16 @@
 # Ignore everything by default
 *
 
+# Need this so negated paths inside folders (e.g. samples/) work
+!*/
+
 # Unignore tracked files
 !*.cpp
 !*.h
 !.gitignore
 !README.md
 !memory_reference_file
+
+# Sample trace files
+!samples/
+!samples/**
