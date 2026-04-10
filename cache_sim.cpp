@@ -26,32 +26,36 @@ Cache::Cache(int num_entries, int associativity, int block_size)
     assert(num_entries % associativity == 0);
 }
 
-bool Cache::access(int word_addr) {
+bool Cache::access(int word_addr)
+{
     int block_addr = word_addr / block_size_;
-    int set_index  = block_addr % num_sets_;
-    int tag        = block_addr / num_sets_;
+    int set_index = block_addr % num_sets_;
+    int tag = block_addr / num_sets_;
 
     ++global_time_;
-    std::vector<CacheEntry>& set = sets_[set_index];
+    std::vector<CacheEntry> &set = sets_[set_index];
 
-    for (CacheEntry& entry : set) {
-        if (entry.valid && entry.tag == tag) {
+    for (CacheEntry &entry : set)
+    {
+        if (entry.valid && entry.tag == tag)
+        {
             entry.lru_time = global_time_;
             return true;
         }
     }
 
     int victim = findVictim(set);
-    set[victim].valid    = true;
-    set[victim].tag      = tag;
+    set[victim].valid = true;
+    set[victim].tag = tag;
     set[victim].lru_time = global_time_;
 
     return false;
 }
 
-void Cache::reset() {
-    for (auto& set : sets_)
-        for (auto& e : set)
+void Cache::reset()
+{
+    for (auto &set : sets_)
+        for (auto &e : set)
             e = CacheEntry{};
     global_time_ = 0;
 }
@@ -61,7 +65,8 @@ int Cache::associativity() const { return associativity_; }
 int Cache::numSets() const { return num_sets_; }
 int Cache::blockSize() const { return block_size_; }
 
-int Cache::findVictim(const std::vector<CacheEntry>& set) {
+int Cache::findVictim(const std::vector<CacheEntry> &set)
+{
     for (int i = 0; i < (int)set.size(); ++i)
         if (!set[i].valid)
             return i;
@@ -78,29 +83,37 @@ int Cache::findVictim(const std::vector<CacheEntry>& set) {
 // ============================================================
 
 std::vector<MissType> classifyMisses(
-    const std::vector<int>&  refs,
-    const std::vector<bool>& actual_hits,
+    const std::vector<int> &refs,
+    const std::vector<bool> &actual_hits,
     int num_entries,
     int block_size)
 {
     Cache fa(num_entries, num_entries, block_size);
 
     std::unordered_set<int> seen_blocks;
-    std::vector<MissType>   types;
+    std::vector<MissType> types;
     types.reserve(refs.size());
 
-    for (int i = 0; i < (int)refs.size(); ++i) {
-        bool fa_hit     = fa.access(refs[i]);
-        int  block_addr = refs[i] / block_size;
+    for (int i = 0; i < (int)refs.size(); ++i)
+    {
+        bool fa_hit = fa.access(refs[i]);
+        int block_addr = refs[i] / block_size;
         bool first_time = (seen_blocks.find(block_addr) == seen_blocks.end());
 
-        if (actual_hits[i]) {
+        if (actual_hits[i])
+        {
             types.push_back(MissType::HIT);
-        } else if (first_time) {
+        }
+        else if (first_time)
+        {
             types.push_back(MissType::COMPULSORY);
-        } else if (!fa_hit) {
+        }
+        else if (!fa_hit)
+        {
             types.push_back(MissType::CAPACITY);
-        } else {
+        }
+        else
+        {
             types.push_back(MissType::CONFLICT);
         }
 
@@ -109,12 +122,18 @@ std::vector<MissType> classifyMisses(
     return types;
 }
 
-const char* missTypeStr(MissType mt) {
-    switch (mt) {
-        case MissType::HIT:        return "HIT";
-        case MissType::COMPULSORY: return "COMPULSORY";
-        case MissType::CAPACITY:   return "CAPACITY";
-        case MissType::CONFLICT:   return "CONFLICT";
+const char *missTypeStr(MissType mt)
+{
+    switch (mt)
+    {
+    case MissType::HIT:
+        return "HIT";
+    case MissType::COMPULSORY:
+        return "COMPULSORY";
+    case MissType::CAPACITY:
+        return "CAPACITY";
+    case MissType::CONFLICT:
+        return "CONFLICT";
     }
     return "UNKNOWN";
 }
@@ -123,54 +142,68 @@ const char* missTypeStr(MissType mt) {
 // main
 // ============================================================
 
-int main(int argc, char* argv[]) {
-    if (argc < 4) {
+int main(int argc, char *argv[])
+{
+    if (argc < 4)
+    {
         std::cerr << "Usage: " << argv[0]
                   << " <num_entries> <associativity> <memory_reference_file>"
                   << " [--block-size N] [--l2 <entries> <assoc>] [--classify]\n";
         return 1;
     }
 
-    int         num_entries   = std::stoi(argv[1]);
-    int         associativity = std::stoi(argv[2]);
-    std::string ref_file      = argv[3];
+    int num_entries = std::stoi(argv[1]);
+    int associativity = std::stoi(argv[2]);
+    std::string ref_file = argv[3];
 
-    int  block_size = 1;
-    bool use_l2     = false;
-    int  l2_entries = 0, l2_assoc = 0;
-    bool classify   = false;
+    int block_size = 1;
+    bool use_l2 = false;
+    int l2_entries = 0, l2_assoc = 0;
+    bool classify = false;
 
-    for (int i = 4; i < argc; ++i) {
+    for (int i = 4; i < argc; ++i)
+    {
         std::string arg = argv[i];
-        if (arg == "--block-size" && i + 1 < argc) {
+        if (arg == "--block-size" && i + 1 < argc)
+        {
             block_size = std::stoi(argv[++i]);
-        } else if (arg == "--l2" && i + 2 < argc) {
-            use_l2     = true;
+        }
+        else if (arg == "--l2" && i + 2 < argc)
+        {
+            use_l2 = true;
             l2_entries = std::stoi(argv[++i]);
-            l2_assoc   = std::stoi(argv[++i]);
-        } else if (arg == "--classify") {
+            l2_assoc = std::stoi(argv[++i]);
+        }
+        else if (arg == "--classify")
+        {
             classify = true;
-        } else {
+        }
+        else
+        {
             std::cerr << "Unknown argument: " << arg << "\n";
             return 1;
         }
     }
 
-    if (num_entries <= 0 || associativity <= 0 || num_entries % associativity != 0) {
+    if (num_entries <= 0 || associativity <= 0 || num_entries % associativity != 0)
+    {
         std::cerr << "Error: associativity must evenly divide num_entries.\n";
         return 1;
     }
-    if (block_size <= 0) {
+    if (block_size <= 0)
+    {
         std::cerr << "Error: block-size must be a positive integer.\n";
         return 1;
     }
-    if (use_l2 && (l2_entries <= 0 || l2_assoc <= 0 || l2_entries % l2_assoc != 0)) {
+    if (use_l2 && (l2_entries <= 0 || l2_assoc <= 0 || l2_entries % l2_assoc != 0))
+    {
         std::cerr << "Error: invalid L2 cache parameters.\n";
         return 1;
     }
 
     std::ifstream fin(ref_file);
-    if (!fin.is_open()) {
+    if (!fin.is_open())
+    {
         std::cerr << "Error: cannot open file \"" << ref_file << "\".\n";
         return 1;
     }
@@ -182,13 +215,14 @@ int main(int argc, char* argv[]) {
     }
     fin.close();
 
-    if (refs.empty()) {
+    if (refs.empty())
+    {
         std::cerr << "Error: no memory references found in \"" << ref_file << "\".\n";
         return 1;
     }
 
-    Cache  l1(num_entries, associativity, block_size);
-    Cache* l2 = use_l2 ? new Cache(l2_entries, l2_assoc, block_size) : nullptr;
+    Cache l1(num_entries, associativity, block_size);
+    Cache *l2 = use_l2 ? new Cache(l2_entries, l2_assoc, block_size) : nullptr;
 
     std::cout << "=== Cache Simulator Configuration ===\n";
     std::cout << "L1: " << num_entries << " entries, "
@@ -206,7 +240,8 @@ int main(int argc, char* argv[]) {
     std::vector<bool> l1_hits(refs.size(), false);
     std::vector<bool> l2_hits(refs.size(), false);
 
-    for (int i = 0; i < (int)refs.size(); ++i) {
+    for (int i = 0; i < (int)refs.size(); ++i)
+    {
         l1_hits[i] = l1.access(refs[i]);
         if (!l1_hits[i] && l2)
             l2_hits[i] = l2->access(refs[i]);
@@ -218,17 +253,22 @@ int main(int argc, char* argv[]) {
 
     const std::string out_file = "cache_sim_output";
     std::ofstream fout(out_file);
-    if (!fout.is_open()) {
+    if (!fout.is_open())
+    {
         std::cerr << "Error: cannot create output file \"" << out_file << "\".\n";
         delete l2;
         return 1;
     }
 
-    for (int i = 0; i < (int)refs.size(); ++i) {
+    for (int i = 0; i < (int)refs.size(); ++i)
+    {
         fout << refs[i] << " : ";
-        if (l1_hits[i]) {
+        if (l1_hits[i])
+        {
             fout << "HIT";
-        } else {
+        }
+        else
+        {
             fout << "MISS";
             if (use_l2)
                 fout << " | L2: " << (l2_hits[i] ? "HIT" : "MISS");
@@ -242,9 +282,10 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Per-reference lines written to \"" << out_file << "\".\n";
 
-    int l1_hit_count  = 0;
+    int l1_hit_count = 0;
     int l1_miss_count = 0;
-    for (bool h : l1_hits) h ? ++l1_hit_count : ++l1_miss_count;
+    for (bool h : l1_hits)
+        h ? ++l1_hit_count : ++l1_miss_count;
 
     // Summary on stdout only; cache_sim_output matches HW3 (one line per reference).
     std::cout << "\n--- Summary ---\n";
@@ -254,9 +295,12 @@ int main(int argc, char* argv[]) {
     std::cout << "L1 Misses        : " << l1_miss_count
               << " (" << (100.0 * l1_miss_count / refs.size()) << "%)\n";
 
-    if (use_l2) {
+    if (use_l2)
+    {
         int l2_hit_count = 0;
-        for (bool h : l2_hits) if (h) ++l2_hit_count;
+        for (bool h : l2_hits)
+            if (h)
+                ++l2_hit_count;
         int l2_miss_count = l1_miss_count - l2_hit_count;
 
         std::cout << "L2 Accesses      : " << l1_miss_count << "\n";
@@ -264,15 +308,26 @@ int main(int argc, char* argv[]) {
         std::cout << "L2 Misses        : " << l2_miss_count << "\n";
     }
 
-    if (classify) {
+    if (classify)
+    {
         int n_comp = 0, n_cap = 0, n_conf = 0;
-        for (int i = 0; i < (int)refs.size(); ++i) {
-            if (!l1_hits[i]) {
-                switch (miss_types[i]) {
-                    case MissType::COMPULSORY: ++n_comp; break;
-                    case MissType::CAPACITY:   ++n_cap;  break;
-                    case MissType::CONFLICT:   ++n_conf; break;
-                    default: break;
+        for (int i = 0; i < (int)refs.size(); ++i)
+        {
+            if (!l1_hits[i])
+            {
+                switch (miss_types[i])
+                {
+                case MissType::COMPULSORY:
+                    ++n_comp;
+                    break;
+                case MissType::CAPACITY:
+                    ++n_cap;
+                    break;
+                case MissType::CONFLICT:
+                    ++n_conf;
+                    break;
+                default:
+                    break;
                 }
             }
         }

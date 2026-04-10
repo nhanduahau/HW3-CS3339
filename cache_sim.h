@@ -16,13 +16,15 @@
 #include <string>
 #include <unordered_set>
 
-struct CacheEntry {
-    bool valid    = false;
-    int  tag      = -1;
-    int  lru_time = 0;
+struct CacheEntry
+{
+    bool valid = false;
+    int tag = -1;
+    int lru_time = 0;
 };
 
-class Cache {
+class Cache
+{
 public:
     Cache(int num_entries, int associativity, int block_size = 1);
 
@@ -42,17 +44,23 @@ private:
     std::vector<std::vector<CacheEntry>> sets_;
     int global_time_;
 
-    static int findVictim(const std::vector<CacheEntry>& set);
+    static int findVictim(const std::vector<CacheEntry> &set);
 };
 
-enum class MissType { HIT, COMPULSORY, CAPACITY, CONFLICT };
+enum class MissType
+{
+    HIT,
+    COMPULSORY,
+    CAPACITY,
+    CONFLICT
+};
 
 std::vector<MissType> classifyMisses(
-    const std::vector<int>&  refs,
-    const std::vector<bool>& actual_hits,
+    const std::vector<int> &refs,
+    const std::vector<bool> &actual_hits,
     int num_entries,
     int block_size);
 
-const char* missTypeStr(MissType mt);
+const char *missTypeStr(MissType mt);
 
-#endif  // CACHE_SIM_H_
+#endif // CACHE_SIM_H_
